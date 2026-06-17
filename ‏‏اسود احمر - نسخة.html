@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>BabyMonster Piano Tiles 🎹</title>
+    <style>
+        /* تصميم مستوحى من BabyMonster (أسود وأحمر) */
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; }
+        
+        #menu { position: absolute; z-index: 100; background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; overflow-y: auto; }
+        h1 { color: #ff003c; text-shadow: 0 0 10px #ff003c; margin-bottom: 20px; font-size: 40px; }
+        
+        .song-btn { padding: 12px 25px; margin: 6px; background: #222; border: 2px solid #ff003c; color: white; border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: bold; width: 280px; transition: 0.3s; }
+        .song-btn:hover { background: #ff003c; transform: scale(1.05); box-shadow: 0 0 20px #ff003c; }
+        
+        #game-container { width: 360px; height: 100vh; background: #0a0a0a; position: relative; border-left: 3px solid #ff003c; border-right: 3px solid #ff003c; display: none; }
+        .tile { width: 90px; height: 160px; background: linear-gradient(#ff003c, #900); position: absolute; border-radius: 5px; cursor: pointer; box-shadow: 0 0 15px rgba(255, 0, 60, 0.4); }
+        .tile.clicked { background: #333 !important; box-shadow: none; opacity: 0.3; }
+
+        #score { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #ff003c; font-size: 40px; font-weight: bold; z-index: 50; display: none; }
+
+        #game-over { display: none; position: absolute; z-index: 101; color: white; text-align: center; top: 35%; width: 100%; background: rgba(0,0,0,0.9); padding: 50px 0; }
+        .red-flash { animation: flash 0.3s infinite; }
+        @keyframes flash { 0% { background: #000; } 50% { background: #400; } 100% { background: #000; } }
+    </style>
+</head>
+<body>
+
+    <div id="score">0</div>
+
+    <!-- قائمة الأغاني السبعة -->
+    <div id="menu">
+        <h1>BABYMONSTER PIANO 🎹</h1>
+        <button class="song-btn" onclick="startGame('song1.mp3')">SHEESH </button>
+        <button class="song-btn" onclick="startGame('song2.mp3')">GOLDEN</button>
+        <button class="song-btn" onclick="startGame('song3.mp3')">DRIP</button>
+        <button class="song-btn" onclick="startGame('song4.mp3')">LIKE THAT</button>
+        <button class="song-btn" onclick="startGame('song5.mp3')">FOREVER </button>
+        <button class="song-btn" onclick="startGame('song6.mp3')">BILLIONAIRE</button>
+        <button class="song-btn" onclick="startGame('song7.mp3')">PSYCHO</button>
+    <button class="song-btn" onclick="startGame('song8.mp3')">WE GO UP</button>
+    <button class="song-btn" onclick="startGame('song9.mp3')">CHOOM</button>
+    <button class="song-btn" onclick="startGame('song10.mp3')">SUGAR HONEY ICE TEA</button>
+
+</div>
+
+    <!-- واجهة الخسارة -->
+    <div id="game-over">
+        <h1 style="font-size: 60px;">GAME OVER</h1>
+        <p id="final-score" style="font-size: 25px; color: #fff;"></p>
+        <button class="song-btn" onclick="location.reload()">إعادة المحاولة</button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const menu = document.getElementById('menu');
+        const gameOverScreen = document.getElementById('game-over');
+        const scoreDisplay = document.getElementById('score');
+        
+        let selectedAudio = null;
+        let isGameOver = false;
+        let score = 0;
+
+        function startGame(songFile) {
+            menu.style.display = 'none';
+            container.style.display = 'block';
+            scoreDisplay.style.display = 'block';
+            
+            selectedAudio = new Audio(songFile);
+            
+            // --- التعديل هنا: تكرار الأغنية تلقائياً ---
+            selectedAudio.loop = true; 
+            
+            selectedAudio.play().catch(e => alert("يرجى التأكد من وجود ملفات الصوت في نفس المجلد"));
+
+            // توليد البلاطات كل 600 مللي ثانية
+            const spawnInterval = setInterval(() => {
+                if (isGameOver) { clearInterval(spawnInterval); return; }
+                createTile();
+            }, 600); 
+        }
+
+        function createTile() {
+            if (isGameOver) return;
+
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            const lane = Math.floor(Math.random() * 4); 
+            tile.style.left = (lane * 90) + 'px';
+            tile.style.top = '-160px';
+            
+            let isClicked = false;
+
+            tile.onmousedown = function() {
+                if (isClicked || isGameOver) return;
+                isClicked = true;
+                score++;
+                scoreDisplay.innerText = score;
+                tile.classList.add('clicked');
+                setTimeout(() => tile.remove(), 100);
+            };
+
+            container.appendChild(tile);
+
+            let pos = -160;
+            const moveInterval = setInterval(() => {
+                if (isGameOver) { 
+                    clearInterval(moveInterval); 
+                    tile.remove(); 
+                    return; 
+                }
+
+                pos += 7; // سرعة سقوط البلاطات
+                tile.style.top = pos + 'px';
+
+                // الخسارة إذا تجاوزت البلاطة الشاشة ولم تضغط
+                if (pos > window.innerHeight && !isClicked) {
+                    gameOver();
+                    clearInterval(moveInterval);
+                }
+            }, 10);
+        }
+
+        function gameOver() {
+            if (isGameOver) return;
+            isGameOver = true;
+            
+            if (selectedAudio) selectedAudio.pause();
+
+            document.body.classList.add('red-flash');
+            gameOverScreen.style.display = 'block';
+            document.getElementById('final-score').innerText = "لقد حصلت على: " + score + " نقطة";
+            container.style.opacity = "0.1";
+        }
+    </script>
+</body>
+</html>
